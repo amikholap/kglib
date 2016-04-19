@@ -2,7 +2,7 @@ import inspect
 import logging.config
 import os
 
-from .meta import Meta, CVMeta, FeaturesMeta, PreprocessorMeta
+from .meta import Meta, CVMeta, FeaturesMeta, ModelMeta, PreprocessorMeta
 from .utils import ensure_dir_exists
 
 
@@ -33,9 +33,13 @@ class BaseConfig:
         ensure_dir_exists(cv_dir)
         self.cv_meta = CVMeta(os.path.join(cv_dir, 'meta.json'))
 
-        models_dir = os.path.join(self.assets_dir, 'models')
-        ensure_dir_exists(models_dir)
-        self.models_meta = Meta(os.path.join(models_dir, 'meta.json'))
+        model_dir = os.path.join(self.assets_dir, 'models')
+        ensure_dir_exists(model_dir)
+        self.model_meta = ModelMeta(os.path.join(model_dir, 'meta.json'))
+
+        submission_dir = os.path.join(self.assets_dir, 'submissions')
+        ensure_dir_exists(submission_dir)
+        self.submission_meta = Meta(os.path.join(submission_dir, 'meta.json'))
 
         self._logging_config = {
             'version': 1,

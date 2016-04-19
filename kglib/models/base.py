@@ -1,3 +1,5 @@
+import pickle
+
 import pandas as pd
 
 
@@ -26,3 +28,13 @@ class Model:
 
     def _do_predict(self, X):
         raise NotImplementedError
+
+    def save(self, path):
+        with open(path, 'wb') as dst:
+            pickle.dump(self, dst)
+
+    @classmethod
+    def load(cls, path):
+        with open(path, 'rb') as src:
+            model = pickle.load(src)
+        return model

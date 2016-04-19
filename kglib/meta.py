@@ -110,76 +110,6 @@ class FeaturesMeta(DataProcessorMeta):
     pass
 
 
-class DatasetSubMeta:
-
-    def __init__(self, data, parent_dir):
-        self._data = data
-        self._parent_dir = parent_dir
-
-    @property
-    def created_at(self):
-        return self._data['created_at']
-
-    @property
-    def type(self):
-        return self._data['type']
-
-    @property
-    def filename(self):
-        return self._data['filename']
-
-    @classmethod
-    def from_json_data(cls, json_data, parent_dir):
-        data = cls._from_json(json_data)
-        obj = cls(data, parent_dir)
-        return obj
-
-    @classmethod
-    def from_dataset(cls, dataset, parent_dir):
-        data = cls._extract_data(dataset)
-        obj = cls(data, parent_dir)
-        return obj
-
-    @classmethod
-    def _extract_data(cls, dataset):
-        data = {
-            'created_at': datetime.datetime.now(),
-            'type': dataset.__class__,
-            'filename': os.path.basename(dataset.filename),
-            'params': dataset.params,
-        }
-        return data
-
-    @classmethod
-    def _to_json(cls, data):
-        json_data = {
-            'created_at': data['created_at'].isoformat(),
-            'type': '{}.{}'.format(data['type'].__module__, data['type'].__name__),
-            'filename': data['filename'],
-            'params': data['params'],
-        }
-        return json_data
-
-    @classmethod
-    def _from_json(cls, json_data):
-        data = {
-            'created_at': dateutil.parser.parse(json_data['created_at']),
-            'type': utils.import_class_by_path(json_data['type']),
-            'filename': json_data['filename'],
-            'params': json_data['params'],
-        }
-        return data
-
-    def to_json(self):
-        return self._to_json(self._data)
-
-    def build_dataset(self):
-        dataset_type = self._data['type']
-        dataset_path = os.path.join(self._parent_dir, self._data['filename'])
-        dataset = dataset_type(dataset_path, **self._data['params'])
-        return dataset
-
-
 class CVMeta(Meta):
 
     def __init__(self, *args, folds_filename='folds.json', n_runs=3, n_folds=3, **kwargs):
@@ -222,3 +152,122 @@ class CVMeta(Meta):
         # data['runs'] = {name: DatasetSubMeta.from_json_data(data, parent_dir)
                             # for name, data in json_data['datasets'].items()}
         return data
+
+
+class ModelMeta(Meta):
+
+    @property
+    def models(self):
+        return self._data['models']
+
+    @classmethod
+    def _get_initial_data(cls):
+        data = super()._get_initial_data()
+        data['models'] = {}
+        return data
+
+    @classmethod
+    def _to_json(cls, data):
+        json_data = super()._to_json(data)
+        json_data['models'] = {name: m.to_json() for name, m in data['models'].items()}
+        return json_data
+
+    @classmethod
+    def _from_json(cls, json_data, *, parent_dir):
+        data = super()._from_json(json_data, parent_dir=parent_dir)
+        data['models'] = {name: ModelSubMeta.from_json_data(data, parent_dir)
+                          for name, data in json_data['models'].items()}
+        return data
+
+    def add_model(self, name, model):
+        self._data['models'][name] = ModelSubMeta.from_model(model, name, self._parent_dir)
+
+
+class SubmissionMeta(Meta):
+    pass
+
+
+class SubMeta:
+    pass
+
+
+class PersistedObjectSubMeta(SubMeta):
+
+    def __init__(self, data, parent_dir):
+        self._data = data
+        self._parent_dir = parent_dir
+
+    @property
+    def created_at(self):
+        return self._data['created_at']
+
+    @property
+    def type(self):
+        return self._data['type']
+
+    @property
+    def filename(self):
+        return self._data['filename']
+
+    @classmethod
+    def from_json_data(cls, json_data, parent_dir):
+        data = cls._from_json(json_data)
+        obj = cls(data, parent_dir)
+        return obj
+
+    @classmethod
+    def _to_json(cls, data):
+        json_data = {
+            'created_at': data['created_at'].isoformat(),
+            'type': '{}.{}'.format(data['type'].__module__, data['type'].__name__),
+            'filename': data['filename'],
+            'params': data['params'],
+        }
+        return json_data
+
+    @classmethod
+    def _from_json(cls, json_data):
+        data = {
+            'created_at': dateutil.parser.parse(json_data['created_at']),
+            'type': utils.import_class_by_path(json_data['type']),
+            'filename': json_data['filename'],
+            'params': json_data['params'],
+        }
+        return data
+
+    def to_json(self):
+        return self._to_json(self._data)
+
+    def build_object(self):
+        obj_type = self._data['type']
+        obj_path = os.path.join(self._parent_dir, self._data['filename'])
+        obj = obj_type.load(obj_path, **self._data['params'])
+        return obj
+
+
+class DatasetSubMeta(PersistedObjectSubMeta):
+
+    @classmethod
+    def from_dataset(cls, dataset, parent_dir):
+        data = {
+            'created_at': datetime.datetime.now(),
+            'type': dataset.__class__,
+            'filename': os.path.basename(dataset.filename),
+            'params': dataset.params,
+        }
+        obj = cls(data, parent_dir)
+        return obj
+
+
+class ModelSubMeta(PersistedObjectSubMeta):
+
+    @classmethod
+    def from_model(cls, model, model_name, parent_dir):
+        data = {
+            'created_at': datetime.datetime.now(),
+            'type': model.__class__,
+            'filename': os.path.join(parent_dir, model_name),
+            'params': {},
+        }
+        obj = cls(data, parent_dir)
+        return obj

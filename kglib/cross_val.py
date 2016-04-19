@@ -7,10 +7,10 @@ import sklearn.cross_validation
 
 class CrossValidator:
 
-    def __init__(self, dataset_name, target_col, model, metric):
+    def __init__(self, model, dataset_name, target_col, metric):
+        self.model = model
         self.dataset_name = dataset_name
         self.target_col = target_col
-        self.model = model
         self.metric = metric
 
     def run(self, dataframe, meta):

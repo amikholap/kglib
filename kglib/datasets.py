@@ -70,3 +70,8 @@ class PandasCsvDataset(PandasDataset):
 
     def save(self):
         self._save_dataframe(self.dataframe, self.filename, **self.to_csv_params)
+
+    @classmethod
+    def load(cls, filename, **kwargs):
+        obj = cls(filename, **kwargs)
+        return obj
